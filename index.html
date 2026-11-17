@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LLM Pipeline Lab — Live Tokenization & 3D Embeddings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Navigation & Pipeline Header -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon">◈</div>
+        <div>
+          <h1>LLM Pipeline Lab</h1>
+          <p class="subtitle">Interactive Text → Tokenization → 3D Semantic Embedding Visualizer</p>
+        </div>
+      </div>
+
+      <nav class="section-nav" aria-label="Pipeline sections">
+        <a href="#section-input" class="nav-pill">0. Input</a>
+        <span class="nav-arrow">→</span>
+        <a href="#section-tokenization" class="nav-pill active">1. Tokenization</a>
+        <span class="nav-arrow">→</span>
+        <a href="#section-embedding" class="nav-pill">2. 3D Embeddings</a>
+      </nav>
+    </header>
+
+    <!-- Shared Input Control Panel -->
+    <section id="section-input" class="card input-card">
+      <div class="input-header">
+        <div>
+          <span class="badge badge-neutral">PIPELINE INPUT</span>
+          <h2>Enter Text to Process</h2>
+        </div>
+        <div class="model-selector-wrap">
+          <label for="model-select">Tokenizer &amp; Embedding Model</label>
+          <select id="model-select">
+            <option value="cl100k">GPT-4 Style (cl100k_base BPE)</option>
+            <option value="llama3">LLaMA-3 Style (Byte-Level BPE)</option>
+            <option value="wordpiece">BERT Style (WordPiece ##)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="textarea-wrap">
+        <textarea
+          id="prompt-input"
+          rows="3"
+          placeholder="Type anything here... e.g., The king and queen walked into the royal palace"
+        >The king and queen walked into the royal palace while artificial intelligence analyzed tokenization.</textarea>
+      </div>
+
+      <div class="presets-row">
+        <span class="presets-label">Try a preset:</span>
+        <button class="preset-btn" data-text="The king and queen walked into the royal palace.">👑 Royalty &amp; People</button>
+        <button class="preset-btn" data-text="Artificial intelligence models learn embeddings from massive code and language.">🤖 AI &amp; Tech</button>
+        <button class="preset-btn" data-text="Fresh apple pie tastes delicious on a cold winter morning.">🥧 Food &amp; Senses</button>
+        <button class="preset-btn" data-text="Unbelievable tokenization splits supercalifragilistic words into subwords!">🧩 Subword Splitting</button>
+        <button class="preset-btn" data-text="def hello_world(n=42): return 'Hello LLM!'">💻 Python Code</button>
+      </div>
+    </section>
+
+    <!-- Pipeline Connector -->
+    <div class="pipeline-connector">
+      <div class="connector-line"></div>
+      <div class="connector-pill">Stage 1: Breaking text into numeric chunks</div>
+      <div class="connector-line"></div>
+    </div>
+
+    <!-- =========================================================
+         SECTION 1: LIVE TOKENIZATION
+         ========================================================= -->
+    <section id="section-tokenization" class="card stage-card">
+      <div class="stage-header">
+        <div class="stage-title-group">
+          <span class="badge badge-blue">SECTION 1</span>
+          <div>
+            <h2>Live Tokenization</h2>
+            <p class="stage-desc">Watch how an LLM breaks human language into subword tokens and numeric IDs.</p>
+          </div>
+        </div>
+
+        <div class="stats-strip">
+          <div class="stat-box">
+            <span class="stat-label">Characters</span>
+            <span class="stat-value" id="stat-chars">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Tokens</span>
+            <span class="stat-value highlight-blue" id="stat-tokens">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Chars / Token</span>
+            <span class="stat-value" id="stat-ratio">0.0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Playback Controls -->
+      <div class="live-controls-bar">
+        <div class="playback-buttons">
+          <button id="btn-play-tok" class="btn btn-primary">▶ Play Live Tokenization</button>
+          <button id="btn-step-back" class="btn btn-secondary" title="Previous step">⏮ Step Back</button>
+          <button id="btn-step-fwd" class="btn btn-secondary" title="Next step">Step Forward ⏭</button>
+          <button id="btn-reset-tok" class="btn btn-ghost">↺ Show All</button>
+        </div>
+
+        <div class="playback-options">
+          <label class="toggle-inline">
+            <input type="checkbox" id="toggle-ids" checked />
+            <span>Show Token IDs</span>
+          </label>
+          <label class="toggle-inline">
+            <input type="checkbox" id="toggle-spaces" checked />
+            <span>Show Space Markers (␣)</span>
+          </label>
+          <div class="speed-control">
+            <label for="tok-speed">Speed</label>
+            <select id="tok-speed">
+              <option value="900">Slow</option>
+              <option value="450" selected>Normal</option>
+              <option value="180">Fast</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Human-Like Live Narrator Box -->
+      <div class="narrator-box" id="narrator-box">
+        <div class="narrator-badge">
+          <span class="pulse-dot"></span>
+          <span id="narrator-phase">LIVE EXPLANATION</span>
+        </div>
+        <p id="narrator-text" class="narrator-text">
+          Press <strong>Play Live Tokenization</strong> to watch step-by-step how your text is split, merged, and converted into numbers — or click any token below to inspect it!
+        </p>
+        <div class="narrator-progress">
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="tok-progress-fill"></div>
+          </div>
+          <span class="progress-label" id="tok-progress-label">Ready</span>
+        </div>
+      </div>
+
+      <!-- Tokenization Workspace: Visual Tokens + Inspector -->
+      <div class="tokenization-grid">
+        <div class="token-stream-panel">
+          <div class="panel-subheader">
+            <span>Tokenized Output Stream</span>
+            <span class="hint-text">Click any token to see why it was split &amp; locate it in 3D</span>
+          </div>
+          <div id="token-stream" class="token-stream" aria-live="polite"></div>
+
+          <div class="token-ids-panel">
+            <div class="panel-subheader">
+              <span>Raw Token ID Array (What the Model Actually Reads)</span>
+              <span class="hint-text">Click any ID or ask below</span>
+            </div>
+            <div id="token-id-array" class="token-id-array"></div>
+
+            <div class="why-id-bar">
+              <input
+                type="number"
+                id="why-id-input"
+                class="why-id-input"
+                placeholder="Enter a Token ID (e.g. 10796) or click an ID above..."
+              />
+              <button type="button" id="btn-why-id" class="btn btn-secondary btn-sm">
+                ? Why is it this ID
+              </button>
+            </div>
+            <div id="why-id-answer" class="why-id-answer hidden"></div>
+
+            <!-- Doubt & Logic Checker inside Tokenization -->
+            <div class="doubt-checker-box">
+              <div class="panel-subheader" style="margin-bottom:6px;">
+                <span>Ask a Doubt / Test Your Logic</span>
+                <span class="hint-text">Enter what you think — we'll verify if it's right or wrong</span>
+              </div>
+              <div class="doubt-input-row">
+                <input
+                  type="text"
+                  id="doubt-input"
+                  class="why-id-input"
+                  placeholder="e.g. 'I think higher Token ID means longer word' or 'Why is space attached to king?'"
+                />
+                <button type="button" id="btn-check-doubt" class="btn btn-primary btn-sm">
+                  Check Logic
+                </button>
+              </div>
+              <div class="doubt-chips-row">
+                <button type="button" class="doubt-chip" data-q="I think every word is 1 token">Every word = 1 token?</button>
+                <button type="button" class="doubt-chip" data-q="I think bigger Token ID means longer word">Bigger ID = longer word?</button>
+                <button type="button" class="doubt-chip" data-q="I think Token ID represents meaning">Token ID = meaning?</button>
+                <button type="button" class="doubt-chip" data-q="I think spaces are deleted before tokenizing">Spaces are deleted?</button>
+                <button type="button" class="doubt-chip" data-q="I think rare words split into subwords because BPE merges common chunks first">Subword splitting logic</button>
+              </div>
+              <div id="doubt-answer" class="doubt-answer hidden"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Plain-English Token Inspector -->
+        <aside class="token-inspector" id="token-inspector">
+          <div class="panel-subheader">
+            <span>Plain-English Token Inspector</span>
+          </div>
+          <div id="inspector-content" class="inspector-content">
+            <div class="inspector-empty">
+              <p>Click any colored token pill on the left to inspect:</p>
+              <ul>
+                <li>Why the model kept it whole or split it</li>
+                <li>Its exact UTF-8 byte sequence</li>
+                <li>Its dictionary Token ID</li>
+                <li>Jump straight to its 3D Embedding vector</li>
+              </ul>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Pipeline Connector -->
+    <div class="pipeline-connector">
+      <div class="connector-line"></div>
+      <div class="connector-pill">Stage 2: Mapping each Token ID to a 3D meaning vector</div>
+      <div class="connector-line"></div>
+    </div>
+
+    <!-- =========================================================
+         SECTION 2: 3D EMBEDDING SPACE
+         ========================================================= -->
+    <section id="section-embedding" class="card stage-card">
+      <div class="stage-header">
+        <div class="stage-title-group">
+          <span class="badge badge-purple">SECTION 2</span>
+          <div>
+            <h2>3D Semantic Embedding Space</h2>
+            <p class="stage-desc">Explore how tokens become vectors in 3D space where similar meanings cluster together.</p>
+          </div>
+        </div>
+
+        <div class="embedding-controls-bar">
+          <label class="toggle-inline">
+            <input type="checkbox" id="toggle-vectors" checked />
+            <span>Origin Vectors</span>
+          </label>
+          <label class="toggle-inline">
+            <input type="checkbox" id="toggle-trajectory" checked />
+            <span>Sentence Path</span>
+          </label>
+          <label class="toggle-inline">
+            <input type="checkbox" id="toggle-anchors" checked />
+            <span>Reference Concepts</span>
+          </label>
+          <label class="toggle-inline">
+            <input type="checkbox" id="toggle-labels" checked />
+            <span>3D Labels</span>
+          </label>
+          <button id="btn-reset-camera" class="btn btn-secondary btn-sm">⌖ Reset Camera</button>
+        </div>
+      </div>
+
+      <!-- Human-Like 3D Explanation Banner -->
+      <div class="explain-3d-banner">
+        <strong>How to read this 3D model:</strong>
+        Think of this 3D room as a <em>"Meaning Map"</em>. Every token gets a position <code>(X, Y, Z)</code> projected from a high-dimensional vector.
+        Words with related meanings (like <em>king</em> &amp; <em>queen</em>, or <em>apple</em> &amp; <em>pie</em>) live in the same neighborhood.
+        Drag to rotate, scroll to zoom, and click any glowing sphere to measure its <strong>Cosine Similarity</strong> to nearby concepts!
+      </div>
+
+      <div class="embedding-grid">
+        <!-- Interactive 3D Viewport -->
+        <div class="viewport-wrapper">
+          <div id="three-container" class="three-container"></div>
+          <div id="labels-overlay" class="labels-overlay"></div>
+
+          <!-- Legend Overlay -->
+          <div class="viewport-legend">
+            <div class="legend-item"><span class="dot dot-input"></span> Your Input Tokens</div>
+            <div class="legend-item"><span class="dot dot-selected"></span> Selected Token</div>
+            <div class="legend-item"><span class="dot dot-anchor"></span> Reference Model Concepts</div>
+            <div class="legend-item"><span class="line-sample"></span> Nearest Semantic Neighbors</div>
+          </div>
+
+          <!-- Camera Hint -->
+          <div class="viewport-hint">Drag: Rotate • Scroll: Zoom • Right-Drag: Pan • Click Sphere: Inspect</div>
+        </div>
+
+        <!-- Embedding Vector & Similarity Inspector -->
+        <aside class="embedding-sidebar">
+          <div class="sidebar-card">
+            <div class="panel-subheader">
+              <span>Selected Token Vector</span>
+              <span class="dim-badge" id="embed-dim-badge">1536-D → 3D</span>
+            </div>
+            <div id="embed-selected-info" class="embed-selected-info">
+              <p class="muted">Click a token in the 3D space (or in Section 1) to inspect its embedding vector, 3D coordinates, and nearest semantic neighbors.</p>
+            </div>
+          </div>
+
+          <div class="sidebar-card">
+            <div class="panel-subheader">
+              <span>Nearest Semantic Neighbors</span>
+              <span class="hint-text">Cosine Similarity</span>
+            </div>
+            <div id="neighbors-list" class="neighbors-list">
+              <p class="muted">Select a token to see its closest neighbors in the 3D model.</p>
+            </div>
+          </div>
+
+          <div class="sidebar-card">
+            <div class="panel-subheader">
+              <span>Compare Any Two Tokens</span>
+            </div>
+            <div class="compare-row">
+              <select id="compare-a"></select>
+              <span class="vs-badge">vs</span>
+              <select id="compare-b"></select>
+            </div>
+            <div id="compare-result" class="compare-result">
+              Select two tokens to compute cosine similarity.
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
